@@ -57,7 +57,7 @@ class App extends React.Component {
     updateTitle();
     store.subscribe(() => {
       updateTitle();
-      this.forceUpdate();
+      // this.forceUpdate();
     });
   }
 
