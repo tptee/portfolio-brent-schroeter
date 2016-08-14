@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { PropTypes } from 'react';
 import ReactDOM from 'react-dom';
-import { createStore } from 'redux';
+import { compose, createStore } from 'redux';
+import { Provider, connect } from 'react-redux';
 import {
   createStoreWithRouter,
   provideRouter,
   initializeCurrentLocation,
   Fragment,
 } from 'redux-little-router';
-import ejs from 'ejs';
 
 import Navigation from './Navigation.jsx';
 import styles from './styles.js';
@@ -34,7 +34,11 @@ const routes = {
 const store = createStore(
   reducer,
   {},
-  createStoreWithRouter({ routes, pathname: location.pathname, basename: '' })
+  createStoreWithRouter({
+    routes,
+    pathname: location.pathname,
+    basename: '',
+  })
 );
 
 const initialLocation = store.getState().router;
@@ -42,28 +46,10 @@ if (initialLocation) {
   store.dispatch(initializeCurrentLocation(initialLocation));
 }
 
-const updateTitle = () => {
-  const { router } = store.getState();
-  const { title } = router.result;
-  document.title = ejs.render(title, {
-    params: router.params,
-    result: router.result,
-  }, { escape: false });
-};
-
-class App extends React.Component {
-  constructor(...args) {
-    super(...args);
-    updateTitle();
-    store.subscribe(() => {
-      updateTitle();
-      // this.forceUpdate();
-    });
-  }
-
-  render() {
-    const { storyName } = store.getState().router.params;
-    return (
+const App = props => {
+  const { storyName } = props.router.params;
+  return (
+    <Provider store={store}>
       <div style={styles.app}>
         <Navigation />
         <div style={styles.contentBody}>
@@ -75,10 +61,24 @@ class App extends React.Component {
           </Fragment>
         </div>
       </div>
-    );
-  }
-}
+    </Provider>
+  );
+};
 
-const AppWithRouter = provideRouter({ store })(App);
+App.propTypes = {
+  router: PropTypes.object,
+};
 
-ReactDOM.render(<AppWithRouter />, document.getElementById('mountNode'));
+const ComposedApp = compose(
+  provideRouter({ store }),
+  connect(state => ({
+    router: state.router,
+  }))
+)(App);
+
+ReactDOM.render(
+  <Provider store={store}>
+    <ComposedApp />
+  </Provider>,
+  document.getElementById('mountNode')
+);
